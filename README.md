@@ -1,9 +1,12 @@
 # Hermes Flow
 
-Inspect Hermes agent runs as a local HTML graph and terminal tree.
+Inspect and reconstruct Hermes agent sessions as a local HTML graph and
+terminal tree.
 
-Hermes Flow makes agent handoffs, tool calls, timing, outcomes, and captured
-interaction evidence visible. It also compares later runs with a reviewed
+Hermes Flow reads the existing Hermes session database and reconstructs the
+recorded history: agent lineage, handoffs, tool calls, timing, outcomes, and
+captured interaction evidence. It can inspect one session tree, all recorded
+sessions, or exported JSON/JSONL. It also compares later runs with a reviewed
 trusted-paths baseline. Reports are generated locally with no telemetry or
 external services.
 
@@ -21,6 +24,22 @@ The second view shows a different deviation: an auditor using a new
 
 Reports show new connections above the graph. Capture notes and baseline
 details stay collapsed below it.
+
+## Reconstruct existing Hermes history
+
+This is the core workflow: install the plugin, then inspect sessions that are
+already recorded by Hermes. No new agents need to run and Hermes Flow does not
+modify the database.
+
+```bash
+hermes flow sessions                 # list recorded sessions
+hermes flow --session-id SESSION_ID --open  # session and descendants
+hermes flow --all-sessions --open    # reconstruct all recorded sessions
+```
+
+The reconstruction is intentionally metadata-only. Reports include the
+structure and activity needed to understand a run, but omit prompts, model
+reasoning, result bodies, and general tool arguments.
 
 ## Connect to Hermes (optional)
 
@@ -55,7 +74,8 @@ Preview a synthetic flow from this checkout:
 python3 -m hermes_flow demo --open
 ```
 
-After installing the plugin, inspect recorded sessions:
+After installing the plugin, inspect recorded sessions (see the core history
+workflow above):
 
 ```bash
 hermes flow sessions

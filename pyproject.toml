@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hermes-flow"
+version = "0.1.0"
+description = "Recorded agent flows and graphs for Hermes"
+readme = "README.md"
+license = {file = "LICENSE"}
+requires-python = ">=3.10"
+dependencies = []
+
+[project.scripts]
+hermes-flow = "hermes_flow.cli:main"
+
+[project.entry-points."hermes_agent.plugins"]
+hermes-flow = "hermes_flow"
+
+[tool.setuptools.packages.find]
+include = ["hermes_flow*"]
+
+[tool.setuptools.package-data]
+hermes_flow = ["plugin.yaml", "report.html", "report_graph.js", "report_app.js"]

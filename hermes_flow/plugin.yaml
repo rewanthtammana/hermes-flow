@@ -1,0 +1,5 @@
+name: hermes-flow
+version: "0.1.0"
+description: Explore recorded agent flows, handoffs, and tools in terminal and offline HTML graphs.
+requires_hermes: ">=0.21.6"
+capabilities: []

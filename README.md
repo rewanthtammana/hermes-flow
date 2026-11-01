@@ -1,0 +1,191 @@
+# Hermes Flow
+
+Inspect Hermes agent runs as a local HTML graph and terminal tree.
+
+Hermes Flow makes agent handoffs, tool calls, timing, outcomes, and captured
+interaction evidence visible. It also compares later runs with a reviewed
+trusted-paths baseline. Reports are generated locally with no telemetry or
+external services.
+
+## See the signal first
+
+The primary view shows the flow and one reverse connection outside the trusted
+path, highlighted in red:
+
+![Agent flow with one trusted-path deviation](docs/flow.png)
+
+The second view shows a different deviation: an auditor using a new
+`mcp__browser__open` tool. The summary names the connection:
+
+![Trusted-path comparison with a new tool connection](docs/trusted-paths.png)
+
+Reports show new connections above the graph. Capture notes and baseline
+details stay collapsed below it.
+
+## Connect to Hermes (optional)
+
+To use this checkout as a Hermes plugin, run the local installer:
+
+```bash
+bash scripts/install-local.sh
+```
+
+The script validates and links this directory at
+`~/.hermes/plugins/hermes-flow` (or under `$HERMES_HOME/plugins`), enables the
+plugin, and opens a synthetic demo. It requires an installed Hermes CLI. To
+remove the local link, disable the plugin and remove that symlink.
+
+Once this repository is published and accessible to the installer, users can
+install it directly from Git:
+
+```bash
+hermes plugins install OWNER/REPO --enable
+```
+
+The root `plugin.yaml` supports native Git installation. See the
+[Hermes plugin guide](https://github.com/NousResearch/hermes-agent/blob/main/website/docs/user-guide/features/plugins.md)
+for installation options and [publishing notes](docs/PUBLISHING.md) for catalog
+submission.
+
+## Quick start
+
+Preview a synthetic flow from this checkout:
+
+```bash
+python3 -m hermes_flow demo --open
+```
+
+After installing the plugin, inspect recorded sessions:
+
+```bash
+hermes flow sessions
+hermes flow --session-id SESSION_ID --open
+```
+
+Useful selectors and output options:
+
+```bash
+hermes flow                         # all recorded sessions
+hermes flow --all-sessions --open
+hermes flow --session-id ID1,ID2
+hermes flow --out report.html
+hermes flow show events.jsonl --graph mermaid --out flow.html
+```
+
+Each run prints a terminal tree and writes a self-contained HTML report. Use
+`--open` to launch it, `--out PATH` to choose the output path, and `--force` to
+replace an existing report.
+
+## Trusted-path comparison
+
+Create a baseline from known-good history, then compare later runs:
+
+```bash
+hermes flow baseline create --session-id SESSION_ID --out trusted-paths.json
+hermes flow --session-id NEW_SESSION_ID \
+  --compare-with-trusted-paths trusted-paths.json --open
+```
+
+New directed connections are highlighted in red. Baseline files are editable
+JSON and are never changed by comparison. Matching uses agent labels (with
+configured aliases), direction, tool names, and connection type. This is a
+post-run check of individual connections; it does not prove execution order or
+tool safety.
+
+### Reproduce both one-deviation examples
+
+Both screenshots start from the same synthetic known-good flow. The first adds
+an `auditor → orchestrator` message; the second adds an
+`auditor → mcp__browser__open` tool call. Each report has one new connection.
+
+```bash
+python3 - <<'PY'
+from pathlib import Path
+
+from hermes_flow.baseline import compare, create, read, write
+from hermes_flow.cli import observe, render
+
+rows = []
+for sid, parent, tools in (
+    ("orchestrator", None, ["delegate_task", "summarize"]),
+    ("researcher", "orchestrator", ["read_file", "delegate_task"]),
+    ("writer", "researcher", ["write_file"]),
+    ("auditor", "orchestrator", ["read_file"]),
+):
+    for i, tool in enumerate(tools):
+        rows.append({
+            "session_id": sid,
+            "agent_role": sid,
+            "parent_session_id": parent,
+            "tool": tool,
+            "call_id": f"{sid}-{i}",
+            "timestamp": 1792843200 + len(rows),
+            "status": "ok",
+        })
+
+trusted = create(observe(rows))
+baseline_path = Path("example-trusted-paths.json")
+write(baseline_path, trusted)
+message_rows = rows + [{
+    "session_id": "auditor",
+    "agent_role": "auditor",
+    "parent_session_id": "orchestrator",
+    "tool": "read_file",
+    "call_id": "auditor-back",
+    "timestamp": 1792843210,
+    "status": "ok",
+    "interaction": {
+        "target_session_id": "orchestrator",
+        "kind": "message",
+    },
+}]
+tool_rows = rows + [{
+    "session_id": "auditor",
+    "agent_role": "auditor",
+    "parent_session_id": "orchestrator",
+    "tool": "mcp__browser__open",
+    "call_id": "auditor-browser",
+    "timestamp": 1792843210,
+    "status": "ok",
+}]
+for name, example in (("message", message_rows), ("tool", tool_rows)):
+    Path(f"example-trusted-paths-{name}.html").write_text(
+        render(compare(observe(example), read(baseline_path), baseline_path))
+    )
+PY
+```
+
+Open either HTML file locally to inspect its red edge and matching
+`New connection · deviation` Activity row.
+
+## Examples
+
+Run the dependency-free prototype:
+
+```bash
+python3 -m hermes_flow prototype --open
+```
+
+Render the included structured interaction example:
+
+```bash
+python3 -m hermes_flow show examples/agent_interactions.jsonl --out interactions.html
+```
+
+For a complete five-agent customer-review demo, see
+[examples/customer_review/README.md](examples/customer_review/README.md).
+
+## Development
+
+Run the test suites:
+
+```bash
+python3 -m unittest discover -s tests -v
+python3 -m unittest discover -s examples/customer_review -p 'test_*.py' -v
+```
+
+## Data handling
+
+Hermes Flow reads selected session metadata or input files and excludes
+prompts, reasoning, result bodies, and general tool arguments from generated
+reports. Review raw exports before sharing them.

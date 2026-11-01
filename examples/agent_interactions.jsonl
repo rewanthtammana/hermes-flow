@@ -1,0 +1,5 @@
+{"session_id":"a","agent_role":"Coordinator A","tool":"agent_send","call_id":"a-b","timestamp":1,"status":"ok","interaction":{"target_session_id":"b","kind":"request"}}
+{"session_id":"b","agent_role":"Analyst B","parent_session_id":"a","tool":"agent_send","call_id":"b-c","timestamp":2,"status":"ok","interaction":{"target_session_id":"c","kind":"request"}}
+{"session_id":"c","agent_role":"Researcher C","parent_session_id":"b","tool":"agent_send","call_id":"c-b","timestamp":3,"status":"ok","interaction":{"target_session_id":"b","kind":"result"}}
+{"session_id":"b","agent_role":"Analyst B","parent_session_id":"a","tool":"agent_send","call_id":"b-d","timestamp":4,"status":"ok","interaction":{"target_session_id":"d","kind":"result"}}
+{"session_id":"d","agent_role":"Writer D","parent_session_id":"a","tool":"read_file","call_id":"d-read","timestamp":5,"status":"ok"}

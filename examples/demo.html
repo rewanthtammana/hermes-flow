@@ -1,0 +1,280 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Hermes Flow</title><style>
+:root{--ink:#193632;--muted:#647973;--line:#dbe4dc;--green:#176557}*{box-sizing:border-box}body{margin:0;background:#f5f7f2;color:var(--ink);font:14px/1.6 system-ui,sans-serif}header{padding:22px 32px;background:white;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:15px}.mark{background:var(--green);color:white;padding:7px 15px;font-size:24px;border-radius:12px}header h1{font-size:19px;margin:0}header p{margin:0;font-size:12px;color:var(--muted)}.local{margin-left:auto;font:11px monospace;letter-spacing:1px;color:var(--green)}main{max-width:1600px;padding:30px;margin:auto}h2{font-size:32px;letter-spacing:-1px;margin:6px 0}h3{margin:0;font-size:18px}p{margin:7px 0}.muted{color:var(--muted)}.eyebrow{font:11px monospace;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}.intro{display:flex;justify-content:space-between;align-items:center;gap:15px}.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:24px 0}.metric,.panel{border:1px solid var(--line);border-radius:12px;background:white;overflow:hidden}.metric{padding:18px 22px}.metric b{display:block;font-size:28px;font-weight:550}.metric span{font-size:12px;color:var(--muted)}.notice{padding:15px 20px;border:1px solid #dfc99f;background:#fff7e7;border-radius:10px;margin-bottom:20px}.notice ul{margin:8px 0;padding-left:20px}.workspace{display:grid;grid-template-columns:290px minmax(0,1fr);gap:18px}.panel-title{padding:18px;border-bottom:1px solid var(--line);font-weight:600}.sidebar input{margin:14px;width:calc(100% - 28px)}input,select,button{font:inherit}input,select,.secondary{padding:9px 12px;border:1px solid var(--line);border-radius:7px;background:white;color:var(--ink)}button{cursor:pointer}button:disabled{cursor:default;opacity:.4}.agents{max-height:650px;overflow:auto;padding:0 9px 12px}.agent{display:block;width:100%;text-align:left;border:0;background:none;border-radius:7px;padding:10px;color:var(--ink);overflow-wrap:anywhere}.agent.active{background:#e3eee5;color:var(--green)}.agent:hover{background:#eff4ed}.agent small{display:block;color:var(--muted);font:10px monospace}.count{float:right;padding:0 6px;background:#eef2eb;border-radius:4px;font-size:11px}.legend{padding:0 15px 14px;font-size:11px;color:var(--muted)}.tabs{display:flex;gap:23px;padding:0 22px;border-bottom:1px solid var(--line)}.tab{padding:17px 0;border:0;background:none;color:var(--muted)}.tab.active{border-bottom:2px solid var(--green);color:var(--green)}.content{padding:22px}.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}.toolbar input{flex:1;min-width:140px}.path{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:18px 0}.step{font:11px monospace;padding:8px 10px;border:1px solid #d6e4d9;border-radius:7px;background:#edf4ed;overflow-wrap:anywhere}table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:12px}th{text-align:left;text-transform:uppercase;font-size:10px;color:var(--muted);letter-spacing:.5px}th,td{padding:12px 7px;border-bottom:1px solid #e9eee7;overflow-wrap:anywhere}.mono{font:11px monospace}.pill{padding:3px 6px;font-size:10px;border-radius:5px;background:#eaf2e9}.pill.error{background:#fae4db;color:#943d29}.pill.unknown{background:#fff0d1;color:#8c6019}.pager{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:16px}.empty{padding:30px 0;color:var(--muted)}pre{padding:18px;background:#f1f5ef;border-radius:8px;white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px}footer{margin:24px 0;font-size:11px;color:var(--muted)}button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--green);outline-offset:2px}@media(max-width:850px){main{padding:18px}.workspace{grid-template-columns:1fr}.agents{max-height:220px}.metrics{grid-template-columns:repeat(2,1fr)}.local{display:none}h2{font-size:26px}.content{padding:15px}.intro{align-items:flex-start}}
+.deviation{color:#c62828;font-weight:600}#comparison .mono{overflow-wrap:anywhere}.report-details{margin-top:20px}.report-details>details{border:1px solid var(--line);border-radius:10px;background:white;padding:12px 18px;margin-top:10px}.report-details summary{cursor:pointer;font-weight:600}.report-details ul{margin:10px 0 2px;padding-left:20px}.report-details li{overflow-wrap:anywhere}.comparison-list{margin:8px 0 0;padding-left:20px}
+</style></head>
+<body><header><div class="mark" aria-hidden="true">↳</div><div><h1>Hermes Flow</h1><p>Follow your agents and tools.</p></div><div class="local">LOCAL FLOW EXPLORER</div></header>
+<main><h2>Agent flows</h2><p class="muted" id="subtitle"></p><div class="metrics" id="metrics"></div><div id="comparison"></div>
+<div class="workspace"><aside class="panel sidebar"><div class="panel-title">Agents</div><input id="agentSearch" aria-label="Search agents" placeholder="Find agent or session…"><div id="agents" class="agents"></div><div class="legend">Recorded lineage and correlated handoffs.<br>Disconnected roots remain separate.</div></aside>
+<section class="panel"><nav class="tabs" aria-label="Flow views"><button class="tab active" data-tab="graph">Graph</button><button class="tab" data-tab="activity">Activity</button></nav><div id="view" class="content"></div></section></div><div id="coverage" class="report-details"></div><footer id="footer"></footer></main>
+<script type="application/json" id="flow-data">{"schema": 1, "agents": [{"id": "orchestrator", "name": "orchestrator", "parent": null, "relation": "recorded lineage", "ended": false, "calls": 2, "parent_call_id": null, "end_time": null}, {"id": "researcher", "name": "researcher", "parent": "orchestrator", "relation": "recorded lineage", "ended": false, "calls": 2, "parent_call_id": null, "end_time": null}, {"id": "writer", "name": "writer", "parent": "researcher", "relation": "recorded lineage", "ended": false, "calls": 1, "parent_call_id": null, "end_time": null}, {"id": "auditor", "name": "auditor", "parent": "orchestrator", "relation": "recorded lineage", "ended": false, "calls": 1, "parent_call_id": null, "end_time": null}], "events": [{"id": 0, "session": "orchestrator", "tool": "delegate_task", "call_id": "orchestrator-0", "time": 1792843200.0, "status": "ok", "batch": 0, "security": {}}, {"id": 1, "session": "orchestrator", "tool": "summarize", "call_id": "orchestrator-1", "time": 1792843201.0, "status": "ok", "batch": 1, "security": {}}, {"id": 2, "session": "researcher", "tool": "read_file", "call_id": "researcher-0", "time": 1792843202.0, "status": "ok", "batch": 2, "security": {}}, {"id": 3, "session": "researcher", "tool": "delegate_task", "call_id": "researcher-1", "time": 1792843203.0, "status": "ok", "batch": 3, "security": {}}, {"id": 4, "session": "writer", "tool": "write_file", "call_id": "writer-0", "time": 1792843204.0, "status": "ok", "batch": 4, "security": {}}, {"id": 5, "session": "auditor", "tool": "read_file", "call_id": "auditor-0", "time": 1792843205.0, "status": "ok", "batch": 5, "security": {}}], "interactions": [], "coverage": ["orchestrator: delegation call orchestrator-0 is unverified; child lineage is not correlated to this call", "researcher: delegation call researcher-1 is unverified; child lineage is not correlated to this call"], "note": "Recorded lineage, handoffs, and tool calls.", "demo": true}</script><script>
+'use strict';
+const data = JSON.parse(document.getElementById('flow-data').textContent), $ = id => document.getElementById(id);
+const make = (tag, text, cls) => { const e = document.createElement(tag); if (text !== undefined) e.textContent = text; if (cls) e.className = cls; return e; };
+const byId = new Map(data.agents.map(a => [a.id, a])), grouped = new Map(), children = new Map();
+for (const a of data.agents) {
+  grouped.set(a.id, []);
+  const parent = byId.has(a.parent) ? a.parent : null;
+  if (!children.has(parent)) children.set(parent, []);
+  children.get(parent).push(a);
+}
+for (const e of data.events) grouped.get(e.session).push(e);
+let selected = null, tab = 'graph', query = '', outcome = 'all', page = 0;
+const pageSize = 100;
+$('subtitle').textContent = data.demo ? 'Synthetic example · no agents launched' : 'Recorded agents, handoffs, and tool activity';
+for (const [value, label] of [[data.agents.length, 'Agents / sessions'], [data.events.length, 'Tool calls'], [new Set(data.events.map(e => e.tool)).size, 'Distinct tools'], [data.agents.filter(a => a.handoff).length, 'Correlated handoffs']]) {
+  const card = make('div', undefined, 'metric'); card.append(make('b', value), make('span', label)); $('metrics').append(card);
+}
+if (data.coverage.length) {
+  const details = make('details'), list = make('ul'); details.append(make('summary', `Capture notes (${data.coverage.length})`));
+  for (const note of data.coverage) list.append(make('li', note));
+  details.append(list); $('coverage').append(details);
+}
+$('footer').textContent = data.note + ' No transcript bodies or general tool arguments. No external resources.';
+if (data.comparison) {
+  const c = data.comparison, panel = make('div', undefined, 'notice'), list = make('ul', undefined, 'comparison-list');
+  panel.append(make('h3', `${c.deviations} new connection${c.deviations === 1 ? '' : 's'} · trusted path comparison`));
+  for (const link of c.connections.filter(l => l.status === 'deviation')) {
+    list.append(make('li', `${link.source} → ${link.target} · ${link.kind} · ${link.count} observation${link.count === 1 ? '' : 's'}`, 'deviation'));
+  }
+  if (c.deviations) panel.append(list);
+  for (const warning of c.identity_warnings || []) panel.append(make('p', warning, 'deviation'));
+  $('comparison').append(panel);
+  const details = make('details'), absent = make('ul');
+  details.append(make('summary', 'Comparison details'));
+  details.append(make('p', `Baseline: ${c.baseline} · SHA256 ${c.sha256}`, 'mono'));
+  details.append(make('p', 'Red edges labeled “New connection” are outside the trusted-paths baseline. Matching uses exact agent labels (with configured aliases), direction, tool names, and connection type. This is a post-run check of individual connections, not execution order or safety.'));
+  details.append(make('h3', `${c.missing.length} trusted connections not observed`));
+  for (const link of c.missing) absent.append(make('li', `${link.source} → ${link.target} · ${link.kind}`));
+  if (c.missing.length) details.append(absent);
+  $('coverage').prepend(details);
+}
+function choose(id) { selected = id; page = 0; drawAgents(); draw(); }
+function drawAgents() {
+  const root = $('agents'); root.replaceChildren();
+  const all = make('button', 'All agents', 'agent' + (selected === null ? ' active' : '')); all.onclick = () => choose(null); root.append(all);
+  const filter = $('agentSearch').value.toLowerCase(), stack = (children.get(null) || []).slice().reverse().map(a => [a, 0]);
+  while (stack.length) {
+    const [a, depth] = stack.pop();
+    for (const child of (children.get(a.id) || []).slice().reverse()) stack.push([child, depth + 1]);
+    const label = (a.name + ' ' + a.id).toLowerCase();
+    if (filter && !label.includes(filter)) continue;
+    const button = make('button', undefined, 'agent' + (selected === a.id ? ' active' : ''));
+    button.style.paddingLeft = 10 + Math.min(depth, 8) * 13 + 'px';
+    button.append(make('span', a.calls, 'count'), make('span', (depth ? '↳ ' : '') + a.name), make('small', a.id));
+    button.onclick = () => choose(a.id); root.append(button);
+  }
+}
+function draw() {
+  document.querySelectorAll('.tab').forEach(e => e.classList.toggle('active', e.dataset.tab === tab));
+  const view = $('view'); view.replaceChildren();
+  if (tab === 'graph') { drawGraph(view); return; }
+  const a = byId.get(selected);
+  view.append(make('h3', a ? a.name : 'All recorded activity'), make('p', a ? a.id : 'Select an agent to follow its recorded calls.', 'muted'));
+  const source = selected === null ? data.events : grouped.get(selected);
+  const toolbar = make('div', undefined, 'toolbar'), input = make('input');
+  input.placeholder = 'Filter tool, call ID, or agent…'; input.setAttribute('aria-label', 'Filter activity'); input.value = query;
+  const status = make('select'); status.setAttribute('aria-label', 'Filter outcome');
+  for (const [value, label] of [['all', 'All outcomes'], ['unknown', 'No recorded outcome'], ['error', 'Error'], ['returned', 'Returned'], ['ok', 'OK']]) {
+    const option = make('option', label); option.value = value; status.append(option);
+  }
+  status.value = outcome;
+  toolbar.append(input, status); view.append(toolbar); const output = make('div'); view.append(output);
+  function paint() {
+    output.replaceChildren();
+    const q = query.toLowerCase(), events = source.filter(e => (outcome === 'all' || e.status === outcome) && `${e.tool} ${e.call_id || ''} ${byId.get(e.session).name}`.toLowerCase().includes(q));
+    const pages = Math.max(1, Math.ceil(events.length / pageSize)); page = Math.min(page, pages - 1);
+    const table = make('table'), head = make('thead'), hr = make('tr'), body = make('tbody');
+    for (const text of ['# / agent', 'Tool / call ID', 'Outcome', 'Time (UTC)', 'Duration']) hr.append(make('th', text)); head.append(hr); table.append(head);
+    for (const e of events.slice(page * pageSize, (page + 1) * pageSize)) {
+      const row = make('tr'), tool = make('td'); tool.append(make('div', e.tool, 'mono'), make('small', e.call_id || 'No call ID', 'muted'));
+      if (e.child_session_id) tool.append(make('div', 'Handoff target: ' + e.child_session_id, 'mono'));
+      for (const [key, value] of Object.entries(e.security || {})) tool.append(make('div', key + ': ' + value, 'mono'));
+      if (e.connection_status) tool.append(make('div', e.connection_status === 'deviation' ? 'New connection · deviation' : 'Trusted connection', e.connection_status === 'deviation' ? 'deviation' : 'muted'));
+      const date = e.time === null ? null : new Date(e.time * 1000);
+      const duration = Number.isFinite(e.duration_seconds) ? (e.duration_seconds < 1 ? Math.round(e.duration_seconds * 1000) + ' ms' : e.duration_seconds.toFixed(2) + ' s') : 'Not recorded';
+      row.append(make('td', `${e.id + 1} · ${byId.get(e.session).name}`), tool, make('td', e.status), make('td', date && !isNaN(date) ? date.toISOString() : 'Not recorded', 'mono'), make('td', duration, 'mono')); body.append(row);
+    }
+    table.append(body); output.append(table);
+    if (!events.length) output.append(make('p', 'No calls in this selection.', 'empty'));
+    const pager = make('div', undefined, 'pager'), prev = make('button', '← Previous', 'secondary'), next = make('button', 'Next →', 'secondary');
+    prev.disabled = page === 0; next.disabled = page >= pages - 1; prev.onclick = () => { page--; paint(); }; next.onclick = () => { page++; paint(); };
+    pager.append(prev, make('span', `${events.length} calls · page ${page + 1} / ${pages}`), next); output.append(pager);
+  }
+  input.oninput = () => { query = input.value; page = 0; paint(); };
+  status.onchange = () => { outcome = status.value; page = 0; paint(); }; paint();
+}
+$('agentSearch').oninput = drawAgents;
+document.querySelectorAll('.tab').forEach(e => e.onclick = () => { tab = e.dataset.tab; draw(); });
+
+// One node per agent invocation, with shared branch points and nested tools.
+let graphPage = 0, graphTools = data.agents.length <= 50, graphZoom = 1, graphInteractions = true;
+function drawGraph(view) {
+  view.append(make('h3', 'Agent flow graph'), make('p',
+    'Forward arrows show lineage or correlated handoffs. Blue arrows show recorded requests, results, or messages, aggregated by direction and kind. Grey reverse arrows show session endings only: result delivery is unverified. Dashed tool edges show usage. Click an agent to focus its subtree and see its other interactions below.', 'muted'));
+  const controls = make('div', undefined, 'toolbar');
+  const toggle = make('button', graphTools ? 'Hide tools' : 'Show tools', 'secondary');
+  toggle.onclick = () => { graphTools = !graphTools; draw(); };
+  const smaller = make('button', '−', 'secondary'), larger = make('button', '+', 'secondary');
+  smaller.setAttribute('aria-label', 'Zoom out'); larger.setAttribute('aria-label', 'Zoom in');
+  smaller.onclick = () => { graphZoom = Math.max(.25, graphZoom - .25); draw(); };
+  larger.onclick = () => { graphZoom = Math.min(2, graphZoom + .25); draw(); };
+  controls.append(toggle, smaller, make('span', Math.round(graphZoom * 100) + '%'), larger);
+  const interactionsToggle = make('button', graphInteractions ? 'Hide interactions' : 'Show interactions', 'secondary');
+  interactionsToggle.onclick = () => { graphInteractions = !graphInteractions; draw(); };
+  controls.append(interactionsToggle);
+  const fit = make('button', 'Fit width', 'secondary');
+  fit.onclick = () => { graphZoom = Math.max(.1, Math.min(1, (wrap.clientWidth - 12) / width)); draw(); };
+  controls.append(fit);
+  if (selected) {
+    const back = make('button', 'All agents', 'secondary'); back.onclick = () => choose(null); controls.append(back);
+    const parent = byId.get(selected).parent;
+    if (byId.has(parent)) { const up = make('button', 'Parent: ' + byId.get(parent).name, 'secondary'); up.onclick = () => choose(parent); controls.append(up); }
+  }
+  view.append(controls);
+  const roots = selected ? [byId.get(selected)] : (children.get(null) || []).slice(graphPage * 50, (graphPage + 1) * 50);
+  const nodes = [], rootNodes = [], pending = roots.slice().reverse().map(a => ({a, parent: null, depth: 0}));
+  let agentCount = 0, omitted = 0;
+  while (pending.length) {
+    const {a, parent, depth} = pending.pop();
+    if (agentCount >= 200) { omitted++; if (parent) parent.hidden = true; continue; }
+    agentCount++;
+    const n = {key: a.id, agent: a, label: a.name, detail: a.id, bad: a.connection_status === 'deviation', depth, children: [], parent};
+    nodes.push(n); if (parent) parent.children.push(n); else rootNodes.push(n);
+    if (graphTools) {
+      const counts = new Map();
+      for (const e of grouped.get(a.id)) {
+        if (!counts.has(e.tool)) counts.set(e.tool, {count: 0, bad: false});
+        const t = counts.get(e.tool); t.count++; t.bad ||= e.connection_status === 'deviation';
+      }
+      for (const [tool, value] of Array.from(counts).slice(0, 12)) {
+        const t = {key: a.id + ':tool:' + tool, label: tool, detail: value.count + ' calls · tool usage', bad: value.bad, depth: depth + 1, parent: n, children: []};
+        n.children.push(t); nodes.push(t);
+      }
+      if (counts.size > 12) n.hiddenTools = counts.size - 12;
+    }
+    // Child agents and tool leaves share a single connected tree.
+    for (const child of (children.get(a.id) || []).slice().reverse()) pending.push({a: child, parent: n, depth: depth + 1});
+  }
+  // Post-order layout assigns each leaf a distinct row; parents sit between children.
+  const order = [], stack = rootNodes.slice().reverse();
+  while (stack.length) { const n = stack.pop(); order.push(n); for (const c of n.children.slice().reverse()) stack.push(c); }
+  let row = 0;
+  for (const n of order.slice().reverse()) {
+    n.x = 24 + n.depth * 300;
+    if (!n.children.length) n.y = 30 + row++ * 100;
+    else n.y = (n.children[0].y + n.children[n.children.length - 1].y) / 2;
+  }
+  // Reverse traversal allocates leaf rows bottom-up. Reflect so source order reads top-down.
+  for (const n of nodes) n.y = Math.max(30, row * 100 - n.y);
+  const width = Math.max(600, ...nodes.map(n => n.x + 290)), height = Math.max(160, row * 100 + 120);
+  const ns = 'http://www.w3.org/2000/svg';
+  function svgEl(tag, attrs = {}) { const el = document.createElementNS(ns, tag); for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v); return el; }
+  const wrap = make('div'); wrap.style.overflow = 'auto'; wrap.style.maxHeight = '850px'; wrap.style.border = '1px solid var(--line)'; wrap.style.borderRadius = '8px';
+  const svg = svgEl('svg', {width: width * graphZoom, height: height * graphZoom, viewBox: `0 0 ${width} ${height}`, role: 'img', 'aria-label': 'Nested agent and tool graph'});
+  const defs = svgEl('defs'), marker = svgEl('marker', {id: 'flow-arrow', viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 6, markerHeight: 6, orient: 'auto-start-reverse'});
+  marker.append(svgEl('path', {d: 'M 0 0 L 10 5 L 0 10 z', fill: '#647973'})); defs.append(marker); svg.append(defs);
+  const replyMarker = svgEl('marker', {id: 'interaction-arrow', viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 6, markerHeight: 6, orient: 'auto'});
+  replyMarker.append(svgEl('path', {d: 'M 0 0 L 10 5 L 0 10 z', fill: '#2463a0'})); defs.append(replyMarker);
+  const deviationMarker = svgEl('marker', {id: 'deviation-arrow', viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 6, markerHeight: 6, orient: 'auto'});
+  deviationMarker.append(svgEl('path', {d: 'M 0 0 L 10 5 L 0 10 z', fill: '#c62828'})); defs.append(deviationMarker);
+  for (const n of nodes) {
+    if (!n.parent) continue;
+    const p = n.parent, x1 = p.x + 230, y1 = p.y + 30, x2 = n.x, y2 = n.y + 30;
+    const kind = n.agent ? (n.agent.handoff ? 'handoff' : 'lineage') : 'uses';
+    const edge = svgEl('path', {d: `M ${x1} ${y1} C ${x1+35} ${y1}, ${x2-35} ${y2}, ${x2} ${y2}`, fill: 'none', stroke: '#647973', 'stroke-width': 1.5, 'marker-end': 'url(#flow-arrow)', 'data-source': p.key, 'data-target': n.key, 'data-kind': kind});
+    edge.setAttribute('data-status', data.comparison ? (n.bad ? 'deviation' : 'trusted') : 'uncompared');
+    if (n.bad) { edge.setAttribute('stroke', '#c62828'); edge.setAttribute('stroke-width', '2.5'); edge.setAttribute('marker-end', 'url(#deviation-arrow)'); }
+    if (!n.agent) edge.setAttribute('stroke-dasharray', '5 4');
+    const title = svgEl('title'); title.textContent = (n.bad ? 'New connection · deviation: ' : '') + (n.agent?.handoff ? 'Correlated call: ' + n.agent.handoff.call_id : kind); edge.append(title); svg.append(edge);
+    if (n.agent || n.bad) { const label = svgEl('text', {x: x2 - 5, y: y2 - 9, 'font-size': 10, 'text-anchor': 'end', fill: n.bad ? '#c62828' : '#647973'}); label.textContent = n.bad ? 'New connection' : kind; svg.append(label); }
+  }
+  const links = new Map();
+  for (const interaction of data.interactions || []) {
+    const key = JSON.stringify([interaction.source, interaction.target, interaction.kind]);
+    if (!links.has(key)) links.set(key, {...interaction, count: 0});
+    const link = links.get(key); link.count++; link.bad ||= interaction.connection_status === 'deviation';
+  }
+  if (graphInteractions) {
+    const visible = new Map(nodes.filter(n => n.agent).map(n => [n.key, n]));
+    let lane = 0;
+    for (const link of links.values()) {
+      const from = visible.get(link.source), to = visible.get(link.target);
+      if (!from || !to) continue;
+      const completion = link.kind === 'completion', color = link.bad ? '#c62828' : completion ? '#7b858b' : '#2463a0';
+      let route, labelX, labelY, anchor = 'middle';
+      if (from.x === to.x) {
+        // Sibling communication runs beside the boxes, never through another node.
+        const x = from.x + 230, y1 = from.y + 45, y2 = to.y + 18, bend = x + 40 + (lane++ % 2) * 6;
+        route = `M ${x} ${y1} C ${bend} ${y1}, ${bend} ${y2}, ${x} ${y2}`;
+        labelX = bend + 3; labelY = (y1+y2)/2; anchor = 'start';
+      } else {
+        const forward = from.x < to.x, x1 = from.x + (forward ? 230 : 0), x2 = to.x + (forward ? 0 : 230);
+        const y1 = from.y + 48, y2 = to.y + 48;
+        if (forward) {
+          route = `M ${x1} ${y1} C ${x1+35} ${y1}, ${x2-35} ${y2}, ${x2} ${y2}`;
+          labelX = (x1+x2)/2; labelY = (y1+y2)/2 + 24;
+        } else {
+          // A single arc below the two boxes keeps reverse communication
+          // distinct from the forward lineage in the gap between columns.
+          const startX = from.x + 115, endX = to.x + 115;
+          const startY = from.y + 64, endY = to.y + 64;
+          const bendY = Math.max(startY, endY) + 48 + (lane++ % 3) * 18;
+          route = `M ${startX} ${startY} C ${startX} ${bendY}, ${endX} ${bendY}, ${endX} ${endY}`;
+          labelX = (startX + endX) / 2;
+          labelY = (startY + endY) / 8 + bendY * .75 - 9;
+        }
+      }
+      const path = svgEl('path', {d: route,
+        fill: 'none', stroke: color, 'stroke-width': 1.8, 'marker-end': completion ? 'url(#flow-arrow)' : 'url(#interaction-arrow)',
+        'data-source': link.source, 'data-target': link.target, 'data-kind': link.kind});
+      path.setAttribute('data-status', data.comparison ? (link.bad ? 'deviation' : 'trusted') : 'uncompared');
+      if (link.bad) { path.setAttribute('marker-end', 'url(#deviation-arrow)'); path.setAttribute('stroke-width', '2.5'); }
+      if (completion) path.setAttribute('stroke-dasharray', '3 5');
+      const title = svgEl('title'); title.textContent = (link.bad ? 'New connection · deviation: ' : '') + `${link.kind} x${link.count}: ${link.evidence}`; path.append(title); svg.append(path);
+      const label = svgEl('text', {x: labelX, y: labelY, 'font-size': 10, fill: color, 'text-anchor': anchor});
+      label.textContent = (link.bad ? 'New connection · ' : '') + (completion ? 'ended · delivery unverified' : link.kind) + (link.count > 1 ? ' x' + link.count : ''); svg.append(label);
+    }
+  }
+  for (const n of nodes) {
+
+    const g = svgEl('g', {'data-node-id': n.key, 'data-node-type': n.agent ? 'agent' : 'tool', transform: `translate(${n.x},${n.y})`});
+    const title = svgEl('title'); title.textContent = n.label + '\n' + n.detail + (n.agent?.parent && !byId.has(n.agent.parent) ? '\nMissing parent: ' + n.agent.parent : '');
+    g.append(title, svgEl('rect', {width: 230, height: 64, rx: n.agent ? 10 : 3, fill: n.agent ? '#e3eee5' : '#f4f7fa', stroke: n.agent ? '#176557' : '#a8bac5', 'stroke-width': n.agent ? 2 : 1}));
+    for (const [text, y, size] of [[n.label, 25, 13], [n.detail, 45, 10]]) { const t = svgEl('text', {x: 10, y, 'font-size': size, fill: '#193632'}); t.textContent = text.length > 29 ? text.slice(0,26) + '…' : text; g.append(t); }
+    if (n.hidden || n.hiddenTools) { const note = svgEl('text', {x: 4, y: 82, 'font-size': 10, fill: '#943d29'}); note.textContent = n.hidden ? 'More branches: select this agent' : `${n.hiddenTools} more tools: see Activity`; g.append(note); }
+    if (n.agent) { g.style.cursor = 'pointer'; g.setAttribute('role', 'button'); g.setAttribute('tabindex', '0'); g.setAttribute('aria-label', 'Focus agent ' + n.label); g.onclick = () => choose(n.agent.id); g.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); choose(n.agent.id); } }; }
+    svg.append(g);
+  }
+  wrap.append(svg); view.append(wrap);
+  if (graphInteractions && links.size) {
+    view.append(make('h3', 'Agent interactions'));
+    const table = make('table'), head = make('tr');
+    for (const text of ['From → to', 'Recorded interaction', 'Count']) head.append(make('th', text));
+    const thead = make('thead'); thead.append(head); table.append(thead);
+    const body = make('tbody');
+    const scope = new Set(nodes.filter(n => n.agent).map(n => n.key));
+    for (const link of links.values()) {
+      if (!scope.has(link.source) && !scope.has(link.target)) continue;
+      const row = make('tr'), endpoints = make('td');
+      for (const [i, id] of [link.source, link.target].entries()) {
+        if (i) endpoints.append(document.createTextNode(' → '));
+        const a = byId.get(id), button = make('button', a ? a.name : id, 'secondary');
+        button.disabled = !a; button.onclick = () => choose(id); endpoints.append(button);
+      }
+      row.append(endpoints, make('td', (link.bad ? 'New connection · deviation · ' : '') + (link.kind === 'completion' ? 'Session ended; result delivery unverified' : link.kind + ' · ' + link.evidence), link.bad ? 'deviation' : ''), make('td', link.count)); body.append(row);
+    }
+    table.append(body); view.append(table);
+    view.append(make('p', 'Interactions with agents outside the visible subtree remain listed here. Arrows describe recorded metadata; they do not show message contents or prove what data was transferred.', 'muted'));
+  }
+  if (omitted) view.append(make('p', 'Graph limited to 200 agents. Additional branches are marked; select their parent to explore. Full activity remains available.', 'notice'));
+  if (!selected) {
+    const total = (children.get(null) || []).length, pager = make('div', undefined, 'pager');
+    const prev = make('button', '← Previous', 'secondary'), next = make('button', 'Next →', 'secondary');
+    prev.disabled = graphPage === 0; next.disabled = (graphPage + 1) * 50 >= total;
+    prev.onclick = () => { graphPage--; draw(); }; next.onclick = () => { graphPage++; draw(); };
+    pager.append(prev, make('span', `Roots ${graphPage*50+1}–${Math.min((graphPage+1)*50,total)} / ${total} · ${agentCount} agents shown`), next); view.append(pager);
+  }
+}
+
+drawAgents();draw();
+</script></body></html>

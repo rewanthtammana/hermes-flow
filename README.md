@@ -12,22 +12,27 @@ external services.
 
 ## See the signal first
 
+The screenshots show two different workflows: the first demonstrates an
+unexpected agent message in a four-agent flow; the second shows a separate
+five-agent review flow with an unexpected browser-tool connection.
+
 The primary view shows the flow and one reverse connection outside the trusted
 path, highlighted in red:
 
-![Agent flow with one trusted-path deviation](docs/flow.png)
+![Four-agent flow with an unexpected agent-message deviation](docs/flow.png)
 
-The second view shows a different deviation: an auditor using a new
+The second view shows a different workflow and deviation: a privacy reviewer
+using a new
 `mcp__browser__open` tool. The summary names the connection:
 
-![Trusted-path comparison with a new tool connection](docs/trusted-paths.png)
+![Five-agent review flow with an unexpected browser-tool deviation](docs/trusted-paths.png)
 
 Reports show new connections above the graph. Capture notes and baseline
 details stay collapsed below it.
 
-Both screenshots keep tool nodes visible: the first contains six ordinary
-tool calls plus a separate red message edge, while the second contains seven
-tool calls, including the new browser connection.
+Both screenshots keep tool nodes visible. The first contains six ordinary
+tool calls plus a separate red message edge; the second contains nine calls,
+including the new browser connection.
 
 ## Reconstruct existing Hermes history
 
@@ -118,9 +123,10 @@ tool safety.
 
 ### Reproduce both one-deviation examples
 
-Both screenshots start from the same synthetic known-good flow. The first adds
-an `auditor → orchestrator` message; the second adds an
-`auditor → mcp__browser__open` tool call. Each report has one new connection.
+The first adds an `auditor → orchestrator` message to a four-agent flow. The
+second uses a separate five-agent review flow and adds a
+`privacy-reviewer → mcp__browser__open` tool call. Each report has one new
+connection.
 
 ```bash
 python3 - <<'PY'
@@ -163,17 +169,30 @@ message_rows = rows + [{
         "kind": "message",
     },
 }]
-tool_rows = rows + [{
-    "session_id": "auditor",
-    "agent_role": "auditor",
-    "parent_session_id": "orchestrator",
-    "tool": "mcp__browser__open",
-    "call_id": "auditor-browser",
-    "timestamp": 1792843210,
-    "status": "ok",
+review_rows = []
+for sid, parent, tools in (
+    ("review-coordinator", None, ["delegate_task", "summarize"]),
+    ("analyst", "review-coordinator", ["read_file", "delegate_task"]),
+    ("privacy-reviewer", "review-coordinator", ["read_file", "redact"]),
+    ("writer", "analyst", ["write_file"]),
+    ("publisher", "writer", ["write_file"]),
+):
+    for i, tool in enumerate(tools):
+        review_rows.append({"session_id": sid, "agent_role": sid,
+                            "parent_session_id": parent, "tool": tool,
+                            "call_id": f"{sid}-{i}",
+                            "timestamp": 1792843300 + len(review_rows),
+                            "status": "ok"})
+review_baseline = Path("example-review-trusted-paths.json")
+write(review_baseline, create(observe(review_rows)))
+tool_rows = review_rows + [{
+    "session_id": "privacy-reviewer", "agent_role": "privacy-reviewer",
+    "parent_session_id": "review-coordinator", "tool": "mcp__browser__open",
+    "call_id": "privacy-browser", "timestamp": 1792843310, "status": "ok",
 }]
-for name, example in (("message", message_rows), ("tool", tool_rows)):
-    report = compare(observe(example), read(baseline_path), baseline_path)
+for name, example, baseline_file in (("message", message_rows, baseline_path),
+                                     ("tool", tool_rows, review_baseline)):
+    report = compare(observe(example), read(baseline_file), baseline_file)
     if name == "message":
         # Keep the message deviation in the interaction view without counting
         # its carrier row as an additional tool call in this illustration.

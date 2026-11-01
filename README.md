@@ -25,6 +25,10 @@ The second view shows a different deviation: an auditor using a new
 Reports show new connections above the graph. Capture notes and baseline
 details stay collapsed below it.
 
+Both screenshots keep tool nodes visible: the first contains six ordinary
+tool calls plus a separate red message edge, while the second contains seven
+tool calls, including the new browser connection.
+
 ## Reconstruct existing Hermes history
 
 This is the core workflow: install the plugin, then inspect sessions that are
@@ -58,7 +62,7 @@ Once this repository is published and accessible to the installer, users can
 install it directly from Git:
 
 ```bash
-hermes plugins install OWNER/REPO --enable
+hermes plugins install rewanthtammana/hermes-flow --enable
 ```
 
 The root `plugin.yaml` supports native Git installation. See the
@@ -169,9 +173,16 @@ tool_rows = rows + [{
     "status": "ok",
 }]
 for name, example in (("message", message_rows), ("tool", tool_rows)):
-    Path(f"example-trusted-paths-{name}.html").write_text(
-        render(compare(observe(example), read(baseline_path), baseline_path))
-    )
+    report = compare(observe(example), read(baseline_path), baseline_path)
+    if name == "message":
+        # Keep the message deviation in the interaction view without counting
+        # its carrier row as an additional tool call in this illustration.
+        report["events"] = [event for event in report["events"]
+                            if event.get("call_id") != "auditor-back"]
+        for agent in report["agents"]:
+            agent["calls"] = sum(event["session"] == agent["id"]
+                                  for event in report["events"])
+    Path(f"example-trusted-paths-{name}.html").write_text(render(report))
 PY
 ```
 

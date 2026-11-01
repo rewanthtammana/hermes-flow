@@ -1,8 +1,9 @@
 # Publish as a Hermes plugin
 
 This folder is a standalone native Hermes plugin project. Publish its contents
-as the root of your plugin repository, or retain it as a `stage1` subdirectory
-and use that subdirectory in install/catalog references.
+as the root of your plugin repository. There is no `stage1` directory in this
+checkout; that name applies only if you later embed the plugin under a
+subdirectory of another repository.
 
 ## Validate and distribute
 
@@ -15,14 +16,13 @@ hermes plugins doctor . --ci
 Push the source to your chosen repository. Users can then run:
 
 ```bash
-hermes plugins install OWNER/REPO --enable
+hermes plugins install rewanthtammana/hermes-flow --enable
 hermes flow --open
 ```
 
-For a subdirectory distribution, use `OWNER/REPO/stage1`. No PyPI upload is
-required for Git-based Hermes installation. Do not publish run captures, private
-session metadata, virtual environments, or bytecode. The example report in this
-project is synthetic and labeled accordingly.
+No PyPI upload is required for Git-based Hermes installation. Do not publish
+run captures, private session metadata, virtual environments, or bytecode. The
+example report in this project is synthetic and labeled accordingly.
 
 Before tagging a release, run the full CI matrix and verify a clean-profile
 installation. Contributors can use `bash scripts/install-local.sh`; it validates

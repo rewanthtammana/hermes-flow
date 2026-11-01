@@ -32,7 +32,7 @@ def main():
         assert not {"status", "ideal", "findings"} & payload.keys()
         page.get_by_role('button', name='Hide tools', exact=True).click()
         page.get_by_role('button', name='Fit width', exact=True).click()
-        page.screenshot(path='/tmp/hermes-flow-stage1.png', full_page=True)
+        page.screenshot(path='/tmp/hermes-flow-browser-smoke.png', full_page=True)
         page.locator('[data-node-id="orchestrator-researcher"]').click()
         assert page.locator('[data-node-type="agent"]').count() == 3
         page.get_by_role('button', name='Show tools', exact=True).click()

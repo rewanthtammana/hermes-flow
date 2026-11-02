@@ -53,7 +53,8 @@ def setup_parser(parser):
     actions = baselines.add_subparsers(dest="baseline_command", required=True)
     create = actions.add_parser("create", help="Collect candidate connections from recorded sessions")
     selection_options(create, required=True)
-    create.add_argument("--out", required=True, type=Path, help="New editable baseline JSON")
+    create.add_argument("--out", required=True, type=Path,
+                        help="New editable baseline JSON (for example trusted-paths.json); not an HTML report")
     examples = sub.add_parser("examples", help="List the included demonstrations and their requirements")
     show = sub.add_parser("show", help="Also accepts exported JSON/JSONL; optional for database viewing")
     history_options(show)
@@ -124,6 +125,9 @@ def run(args):
         return 0
     if args.flow_command == "baseline":
         source = args.db or default_db()
+        if args.out.suffix.lower() in (".html", ".htm"):
+            raise ValueError("Baseline create writes JSON, not HTML; use --out trusted-paths.json. "
+                             "To view a report, run hermes flow --compare-with-trusted-paths trusted-paths.json --open")
         if source.expanduser().resolve() == args.out.expanduser().resolve():
             raise ValueError("Baseline output must not replace the database")
         value = baseline.create(observe(read_database(source, args.session, all_sessions=args.all_sessions)))

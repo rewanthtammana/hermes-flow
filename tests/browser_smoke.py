@@ -63,9 +63,10 @@ def main():
         page.screenshot(path='/tmp/hermes-flow-agent-interactions.png', full_page=True)
         page.locator('[data-node-id="b"]').click()
         assert 'Writer D' in page.locator('table').text_content()  # outside subtree, still navigable
-        page.get_by_role('button', name='Hide interactions', exact=True).click()
+        page.get_by_label('Interaction lines').select_option('none')
         assert page.locator('path[data-kind="result"]').count() == 0
-        page.get_by_role('button', name='Show interactions', exact=True).click()
+        assert 'Writer D' in page.locator('table').text_content()
+        page.get_by_label('Interaction lines').select_option('all')
         native = [{"id": "p", "ended_at": 10, "messages": []},
                   {"id": "c", "parent_session_id": "p", "ended_at": 5, "messages": []}]
         html.write_text(render(observe(native)))

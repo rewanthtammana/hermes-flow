@@ -119,7 +119,8 @@ New directed connections are highlighted in red. Baseline files are editable
 JSON and are never changed by comparison. Matching uses agent labels (with
 configured aliases), direction, tool names, and connection type. This is a
 post-run check of individual connections; it does not prove execution order or
-tool safety.
+tool safety. `baseline create` writes editable JSON; the comparison command
+creates the HTML graph.
 
 ### Reproduce both one-deviation examples
 

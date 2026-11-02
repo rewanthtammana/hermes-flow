@@ -107,10 +107,15 @@ $('agentSearch').oninput = drawAgents;
 document.querySelectorAll('.tab').forEach(e => e.onclick = () => { tab = e.dataset.tab; draw(); });
 
 // One node per agent invocation, with shared branch points and nested tools.
-let graphPage = 0, graphTools = data.agents.length <= 50, graphZoom = 1, graphInteractions = true;
+const denseGraph = data.agents.length > 8 || data.interactions.length > 10;
+let graphPage = 0, graphTools = !denseGraph, graphZoom = 1;
+let graphInteractionMode = denseGraph ? (data.comparison?.deviations ? 'deviations' : 'none') : 'all';
 function drawGraph(view) {
   view.append(make('h3', 'Agent flow graph'), make('p',
-    'Forward arrows show lineage or correlated handoffs. Blue arrows show recorded requests, results, or messages, aggregated by direction and kind. Grey reverse arrows show session endings only: result delivery is unverified. Dashed tool edges show usage. Click an agent to focus its subtree and see its other interactions below.', 'muted'));
+    'Forward arrows show lineage or correlated handoffs. Optional interaction lines show recorded requests, results, or messages; grey reverse lines show session endings where result delivery is unverified. Dashed tool edges show usage. Click an agent to focus its subtree; the interaction table below remains available.', 'muted'));
+  if (!selected && (children.get(null) || []).length > 1) {
+    view.append(make('p', `This report contains ${children.get(null).length} separate session roots. Select an agent in the sidebar to follow one flow.`, 'muted'));
+  }
   const controls = make('div', undefined, 'toolbar');
   const toggle = make('button', graphTools ? 'Hide tools' : 'Show tools', 'secondary');
   toggle.onclick = () => { graphTools = !graphTools; draw(); };
@@ -119,9 +124,14 @@ function drawGraph(view) {
   smaller.onclick = () => { graphZoom = Math.max(.25, graphZoom - .25); draw(); };
   larger.onclick = () => { graphZoom = Math.min(2, graphZoom + .25); draw(); };
   controls.append(toggle, smaller, make('span', Math.round(graphZoom * 100) + '%'), larger);
-  const interactionsToggle = make('button', graphInteractions ? 'Hide interactions' : 'Show interactions', 'secondary');
-  interactionsToggle.onclick = () => { graphInteractions = !graphInteractions; draw(); };
-  controls.append(interactionsToggle);
+  const interactionSelect = make('select'); interactionSelect.setAttribute('aria-label', 'Interaction lines');
+  for (const [value, label] of [['none', 'No interaction lines'], ['deviations', 'New connections only'], ['all', 'All interaction lines']]) {
+    if (value === 'deviations' && !data.comparison) continue;
+    const option = make('option', label); option.value = value; interactionSelect.append(option);
+  }
+  interactionSelect.value = graphInteractionMode;
+  interactionSelect.onchange = () => { graphInteractionMode = interactionSelect.value; draw(); };
+  controls.append(interactionSelect);
   const fit = make('button', 'Fit width', 'secondary');
   fit.onclick = () => { graphZoom = Math.max(.1, Math.min(1, (wrap.clientWidth - 12) / width)); draw(); };
   controls.append(fit);
@@ -194,10 +204,11 @@ function drawGraph(view) {
     if (!links.has(key)) links.set(key, {...interaction, count: 0});
     const link = links.get(key); link.count++; link.bad ||= interaction.connection_status === 'deviation';
   }
-  if (graphInteractions) {
+  if (graphInteractionMode !== 'none') {
     const visible = new Map(nodes.filter(n => n.agent).map(n => [n.key, n]));
     let lane = 0;
     for (const link of links.values()) {
+      if (graphInteractionMode === 'deviations' && !link.bad) continue;
       const from = visible.get(link.source), to = visible.get(link.target);
       if (!from || !to) continue;
       const completion = link.kind === 'completion', color = link.bad ? '#c62828' : completion ? '#7b858b' : '#2463a0';
@@ -246,7 +257,7 @@ function drawGraph(view) {
     svg.append(g);
   }
   wrap.append(svg); view.append(wrap);
-  if (graphInteractions && links.size) {
+  if (links.size) {
     view.append(make('h3', 'Agent interactions'));
     const table = make('table'), head = make('tr');
     for (const text of ['From → to', 'Recorded interaction', 'Count']) head.append(make('th', text));

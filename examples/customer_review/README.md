@@ -47,9 +47,6 @@ python3 examples/customer_review/run.py --prepare-only
 # Run all five agents with your existing Codex login.
 python3 examples/customer_review/run.py
 
-# Optional: keep demo history in a separate profile instead.
-python3 examples/customer_review/run.py --isolated
-
 # Choose a model available to your account, if needed.
 python3 examples/customer_review/run.py --model YOUR_CODEX_MODEL
 ```
@@ -80,12 +77,11 @@ refused. It raises
 settings are preserved. These additions remain available for subsequent runs.
 `--prepare-only` stages the fixture and resources locally without installing them,
 changing the profile, or making model calls.
-
-With `--isolated`, history lives at `RUN/profiles/demo/state.db` as before. That
-mode references your existing Hermes `auth.json` through `RUN/auth.json`; use
-`--auth-source PATH` to select another auth store for isolated runs. Active runs
-use the active profile's existing authentication. No token values are printed or
-copied by the launcher. Generated artifacts and logs remain private and gitignored.
+The launcher uses the active profile's existing authentication and never reads,
+copies, or links its credential store. Generated artifacts and logs remain local
+and gitignored. Run the launcher as the same OS account that runs Hermes; if a
+container uses a separate service account, grant access with a group or ACL rather
+than making the generated workspace world-writable.
 
 ## Inspect after execution
 
@@ -101,12 +97,9 @@ hermes flow --session-id ROOT_ID --open
 python3 examples/customer_review/run.py --verify RUN
 ```
 
-Replace `RUN` and `ROOT_ID` with the values printed after execution. From source,
-or for an isolated run, use the printed `python3 -m hermes_flow --db PATH
---session-id ROOT_ID ...` command. The standalone module uses this checkout
-without installing Flow into the demo profile. For isolated runs, the printed
-Hermes commands include `HERMES_HOME=...` so they read the isolated native
-session database instead of your active profile.
+Replace `RUN` and `ROOT_ID` with the values printed after execution. The printed
+`python3 -m hermes_flow --db PATH --session-id ROOT_ID ...` command uses this
+checkout directly, while the `hermes flow` commands read the active profile.
 
 The graph should show five sessions, nested delegation, repeated artifact tools,
 and skill loads. Native calls appear as `returned`: Flow observes evidence and
@@ -115,8 +108,7 @@ result bodies. It does not infer resource metadata for these custom tools,
 visualize SQLite fields, or prove that masking was correct.
 
 Active runs retain the profile's Tool Search settings; verification recognizes
-both direct calls and native `tool_call` wrappers. Isolated runs disable Tool
-Search deferral in their dedicated demo config.
+both direct calls and native `tool_call` wrappers.
 
 ## Replay the trusted-path comparison demo
 
@@ -152,7 +144,7 @@ python3 -m hermes_flow --db examples/customer_review/runs/live-demo-v3/profiles/
 - `data/artifacts/draft.md`, `review.json`, `report.md`: writer/reviewer artifacts.
 - `data/tool-receipts.jsonl`: supplemental tool names, times and outcomes only.
 - `run.json` → `database`: native sessions, parent IDs and tool messages in the
-  active profile (or `RUN/profiles/demo/state.db` with `--isolated`).
+  active profile.
 - The selected profile's `cache/delegation/`: delegation transcripts, when recorded.
 - `stdout.log`, `stderr.log`, `usage.json`: execution output and model usage.
 - `run.json`: model/provider, completion status and verified session IDs.

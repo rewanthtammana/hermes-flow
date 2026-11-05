@@ -72,7 +72,13 @@ def setup_parser(parser):
 
 
 def default_db():
-    return Path(os.environ.get("HERMES_HOME", str(Path.home() / ".hermes"))) / "state.db"
+    try:
+        from hermes_constants import get_hermes_home
+    except ImportError:
+        home = Path(os.environ.get("HERMES_HOME", str(Path.home() / ".hermes"))).expanduser()
+    else:
+        home = get_hermes_home()
+    return home / "state.db"
 
 
 def observe(rows):

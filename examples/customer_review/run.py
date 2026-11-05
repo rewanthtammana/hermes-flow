@@ -51,39 +51,20 @@ in each goal, because children have independent contexts.
 """
 
 
-def prepare(directory, model, *, active_home=None):
+def prepare(directory, model, *, active_home):
     directory.mkdir(parents=True, exist_ok=False)
-    home = directory / "profiles" / "demo" if active_home is None else directory / "resources"
+    home = directory / "resources"
     plugin = home / "plugins" / "customer-review-demo"
     plugin.mkdir(parents=True)
     shutil.copy2(HERE / "demo_tools.py", plugin / "__init__.py")
     (plugin / "plugin.yaml").write_text(
         'name: customer-review-demo\nversion: "0.1.0"\ndescription: Fictional customer review tools\ncapabilities: []\n', encoding="utf-8")
     shutil.copytree(HERE / "skills", home / "skills")
-    if active_home is None:
-        # The isolated Hermes process may run as a service user different from
-        # the launcher (notably in the Hermes container). It must be able to
-        # create its disposable profile runtime directories and state DB.
-        home.chmod(0o777)
-    # JSON is valid YAML and avoids requiring PyYAML in this launcher.
-    config = {
-        "model": {"provider": "openai-codex", "default": model},
-        "plugins": {"enabled": ["customer-review-demo"]},
-        "tools": {"tool_search": {"enabled": "off"}},
-        "agent": {"max_turns": 35, "reasoning_effort": "low"},
-        "delegation": {"max_iterations": 18, "max_spawn_depth": 2,
-                       "max_concurrent_children": 2, "model": model, "provider": "openai-codex"},
-        "fallback_providers": [],
-        "memory": {"memory_enabled": False, "user_profile_enabled": False},
-    }
-    if active_home is None:
-        (home / "config.yaml").write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
     seed(directory / "data")
     (directory / "prompt.txt").write_text(PROMPT, encoding="utf-8")
     manifest = {"model": model, "provider": "openai-codex", "status": "prepared",
                 "synthetic_data": True, "expected_agents": 5,
-                "history_mode": "isolated" if active_home is None else "active",
-                "database": str((active_home or home) / "state.db")}
+                "history_mode": "active", "database": str(active_home / "state.db")}
     (directory / "run.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     return directory
 
@@ -282,37 +263,24 @@ def main():
     parser.add_argument("--directory", type=Path, help="New capture directory (never overwrites)")
     parser.add_argument("--model", default=os.environ.get("DEMO_CODEX_MODEL", "gpt-5.6-luna"))
     parser.add_argument("--prepare-only", action="store_true", help="Seed SQLite and configure the project without model calls")
-    parser.add_argument("--isolated", action="store_true", help="Record history in a separate demo profile instead of your active profile")
     parser.add_argument("--verify", type=Path, metavar="RUN", help="Verify an existing run without model calls")
     parser.add_argument("--timeout", type=int, default=900, help="Wall-clock limit for the entire Hermes run")
-    parser.add_argument("--auth-source", type=Path, help="Existing Hermes auth.json to reference through read-only global fallback")
     args = parser.parse_args()
     if args.verify:
         print(json.dumps(verify(args.verify.resolve()), indent=2))
         return 0
-    if args.auth_source and not args.isolated:
-        raise ValueError("--auth-source is only supported with --isolated; active runs use the profile's existing authentication")
     hermes = find_hermes()
-    if not hermes and not args.isolated:
+    if not hermes:
         raise ValueError("Install Hermes and authenticate with `hermes auth add openai-codex` first")
-    home = None if args.isolated else active_profile(hermes)
+    home = active_profile(hermes)
     directory = (args.directory or HERE / "runs" / (datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S-") + uuid4().hex[:8])).resolve()
     prepare(directory, args.model, active_home=home)
     print(f"Prepared: {directory}", flush=True)
     if args.prepare_only:
         return 0
-    if not hermes:
-        raise ValueError("Install Hermes and authenticate with `hermes auth add openai-codex` first")
-    if args.isolated:
-        auth_source = (args.auth_source or Path(os.environ.get("HERMES_HOME", Path.home() / ".hermes")) / "auth.json").expanduser().resolve()
-        if not auth_source.is_file():
-            raise ValueError("No Hermes auth.json found; authenticate first or provide --auth-source PATH")
-        (directory / "auth.json").symlink_to(auth_source)
-        home = directory / "profiles" / "demo"
     env = dict(os.environ, HERMES_HOME=str(home), CUSTOMER_REVIEW_DATA=str(directory / "data"))
-    if not args.isolated:
-        install_resources(directory, home, hermes, env)
-    print(f"Native history: {home / 'state.db'} ({'isolated' if args.isolated else 'active'} profile)", flush=True)
+    install_resources(directory, home, hermes, env)
+    print(f"Native history: {home / 'state.db'} (active profile)", flush=True)
     command = [*profile_command(hermes, home), "--provider", "openai-codex", "--model", args.model,
                "--toolsets", "customer_review,skills,delegation", "--ignore-rules",
                "--usage-file", str(directory / "usage.json"), "-z", PROMPT]
@@ -336,11 +304,9 @@ def main():
     print("Native history is ready for Hermes Flow:")
     print(f"  python3 -m hermes_flow --db {home / 'state.db'} --session-id {manifest['root_session_id']} --out {directory / 'flow.html'}")
     print("Open this run from Hermes directly:")
-    hermes_prefix = "" if not args.isolated else f"HERMES_HOME={home} "
-    print(f"  {hermes_prefix}hermes flow --session-id {manifest['root_session_id']} --open")
-    print(f"  {hermes_prefix}hermes flow baseline create --session-id {manifest['root_session_id']} --out trusted-paths-{manifest['root_session_id']}.json")
-    if not args.isolated:
-        print("Visible in your active profile: hermes sessions list")
+    print(f"  hermes flow --session-id {manifest['root_session_id']} --open")
+    print(f"  hermes flow baseline create --session-id {manifest['root_session_id']} --out trusted-paths-{manifest['root_session_id']}.json")
+    print("Visible in your active profile: hermes sessions list")
     return 0
 
 

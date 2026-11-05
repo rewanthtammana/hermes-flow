@@ -32,14 +32,6 @@ def seed(directory):
         db.executemany("INSERT INTO invoices VALUES (?,?,?,?)", [(1, 1, 200, 35), (2, 2, 150, 10), (3, 3, 400, 0)])
     artifacts = directory / "artifacts"
     artifacts.mkdir()
-    # Hermes may run plugin handlers as its unprivileged service user even when
-    # the launcher was started by root (for example, inside the Hermes image).
-    # The fixture is disposable synthetic data, so make only this generated
-    # workspace writable by that user; never broaden permissions on the profile
-    # or repository.
-    directory.chmod(0o777)
-    (directory / "customers.db").chmod(0o666)
-    artifacts.chmod(0o777)
 
 
 def dispatch(name, args, directory=None):

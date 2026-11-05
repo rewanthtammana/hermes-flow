@@ -4,11 +4,13 @@ import io
 import json
 from pathlib import Path
 import sqlite3
+import sys
 import tempfile
+import types
 import unittest
 from unittest.mock import patch
 
-from hermes_flow.cli import dispatch, observe, render, setup_parser
+from hermes_flow.cli import default_db, dispatch, observe, render, setup_parser
 from hermes_flow.core import normalize
 from hermes_flow.graph import graph
 from hermes_flow.formatting import session_table
@@ -21,6 +23,12 @@ def event(**extra):
 
 
 class FlowTests(unittest.TestCase):
+    def test_default_database_uses_hermes_home_resolver(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            module = types.SimpleNamespace(get_hermes_home=lambda: Path(tmp))
+            with patch.dict(sys.modules, {"hermes_constants": module}):
+                self.assertEqual(default_db(), Path(tmp) / "state.db")
+
     def test_recorded_call_durations_require_ordered_timestamps(self):
         for start, finish, expected in [(1, 2.5, 1.5), (1, 1, 0), (2, 1, None),
                                         (None, 2, None), (1, None, None), (-1e308, 1e308, None)]:

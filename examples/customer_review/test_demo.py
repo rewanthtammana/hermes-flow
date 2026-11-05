@@ -2,6 +2,7 @@
 import json
 from contextlib import closing
 from pathlib import Path
+import stat
 import sqlite3
 import tempfile
 import unittest
@@ -30,6 +31,9 @@ class DemoTests(unittest.TestCase):
             self.assertEqual(find_hermes(), "/opt/hermes/bin/hermes")
 
     def test_sqlite_and_masked_handoff(self):
+        self.assertFalse(self.data.stat().st_mode & stat.S_IWOTH)
+        self.assertFalse((self.data / "customers.db").stat().st_mode & stat.S_IWOTH)
+        self.assertFalse((self.data / "artifacts").stat().st_mode & stat.S_IWOTH)
         summary = self.call("demo_portfolio_summary")
         self.assertEqual((summary["customers"], summary["total_balance"], summary["overdue_amount"]), (3, 38100, 350))
         customer = self.call("demo_customer_lookup", customer_id=1)["customer"]
@@ -48,22 +52,24 @@ class DemoTests(unittest.TestCase):
         self.assertIn("error", self.call("demo_artifact_read", filename="draft.md"))
 
     def test_no_overwrite_or_fabricated_history(self):
-        target = self.root / "prepared"
-        prepare(target, "example-model")
+        target, home = self.root / "prepared", self.root / "active-profile"
+        prepare(target, "example-model", active_home=home)
         with self.assertRaises(FileExistsError):
-            prepare(target, "example-model")
-        self.assertFalse((target / "profiles/demo/state.db").exists())
+            prepare(target, "example-model", active_home=home)
+        self.assertFalse((home / "state.db").exists())
         with self.assertRaisesRegex(ValueError, "No native Hermes history"):
             verify(target)
 
     def test_verifier_rejects_static_five_session_claim(self):
-        target = self.root / "invalid"
-        prepare(target, "example-model")
-        with closing(sqlite3.connect(target / "profiles/demo/state.db")) as db, db:
+        target, home = self.root / "invalid", self.root / "active-profile"
+        home.mkdir()
+        prepare(target, "example-model", active_home=home)
+        with closing(sqlite3.connect(home / "state.db")) as db, db:
             db.executescript("CREATE TABLE sessions(id TEXT,parent_session_id TEXT,started_at REAL);"
                              "CREATE TABLE messages(session_id TEXT,tool_calls TEXT);")
             db.executemany("INSERT INTO sessions VALUES (?,?,?)", [("root", None, 0), ("a", "root", 1),
                 ("b", "a", 2), ("c", "root", 3), ("d", "c", 4)])
+        (target / "usage.json").write_text('{"session_id":"root"}')
         with self.assertRaisesRegex(ValueError, "Missing recorded skill loads"):
             verify(target)
 
@@ -77,6 +83,7 @@ class DemoTests(unittest.TestCase):
         self.assertEqual(metadata["history_mode"], "active")
         self.assertEqual(metadata["database"], str(home / "state.db"))
         self.assertTrue((target / "resources/plugins/customer-review-demo/plugin.yaml").is_file())
+        self.assertFalse((target / "auth.json").exists())
         self.assertFalse(home.exists())
         with patch("run.hermes_command", return_value=str(home / "config.yaml")) as query:
             self.assertEqual(active_profile("hermes"), home.resolve())
